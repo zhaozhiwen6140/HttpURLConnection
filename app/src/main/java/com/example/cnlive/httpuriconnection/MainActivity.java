@@ -7,11 +7,16 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -20,6 +25,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -108,6 +114,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if((line=reader.readLine())!=null){
                             builder.append(line);
                         }
+                        parseXMLwithPull(builder.toString());
                         Message message=handler.obtainMessage();
                         message.what= GETMESSAGE;
                         message.obj=builder.toString();
@@ -123,8 +130,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
             }
+
         }).start();
     }
+    private void parseXMLwithPull(String s) {
+        try {
+            XmlPullParserFactory factory=XmlPullParserFactory.newInstance();
+            XmlPullParser xmlPullParser=factory.newPullParser();
+            xmlPullParser.setInput(new StringReader(s));
+            int eventType=xmlPullParser.getEventType();
+//            获取当前解析到这个标签的类型
+//            读取到xml的声明返回数字0 START_DOCUMENT;
+//            读取到xml的结束返回数字1 END_DOCUMENT ;
+//            读取到xml的开始标签返回数字2 START_TAG，就是起始标签被读取。
+//            读取到xml的结束标签返回数字3 END_TAG，就是结束标签被读取。
+            String id="";
+            String name="";
+            String version="";
+            while(eventType!=XmlPullParser.END_DOCUMENT){//如果没到当前整个XML文件的末尾，就一直解析
+                String nodeName=xmlPullParser.getName();
+                switch (eventType){
+                    case XmlPullParser.START_TAG://若起始标签被读取，那么会一直被读取下去，直到遇见结束标签。
+                        if("id".equals(nodeName)){//此时的name会返回当前元素的名称，如id，name,version.
+                            id=xmlPullParser.nextText();
+                        }else if("name".equals(nodeName)){
+                            name=xmlPullParser.nextText();
+                        }else  if("version".equals(nodeName)){
+                            version=xmlPullParser.nextText();
+                        }
+                        break;
+                    case XmlPullParser.END_TAG:
+                        if("app".equals(nodeName)){
+                            Log.e("id",id);
+                            Log.e("name",name);
+                            Log.e("id",version);
+                        }
+                        break;
+                    default:
+                        break;
 
+                }
+                eventType=xmlPullParser.next();//在while中执行，执行完毕之后判断while（）中的条件是否是真的
+            }
+
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 }
